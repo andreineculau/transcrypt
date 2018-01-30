@@ -15,13 +15,13 @@
 ##### CONSTANTS
 
 # the release version of this script
-readonly VERSION='1.0.3-andreineculau'
+readonly VERSION="1.0.3"
 
 # the default cipher to utilize
-readonly DEFAULT_CIPHER='aes-256-cbc'
+readonly DEFAULT_CIPHER="aes-256-cbc"
 
 # regular expression used to test user input
-readonly YES_REGEX='^[Yy]$'
+readonly YES_REGEX="^[Yy]$"
 
 ## Repository Metadata
 
@@ -64,9 +64,9 @@ realpath() {
 	fi
 
 	if [[ -d $dirname && -e $abspath ]]; then
-		printf '%s\n' "$abspath"
+		printf "%s\n" "$abspath"
 	else
-		printf 'invalid path: %s\n' "$path" >&2
+		printf "invalid path: %s\n" "$path" >&2
 		exit 1
 	fi
 }
@@ -79,7 +79,7 @@ readonly GIT_DIR=$(realpath "$RELATIVE_GIT_DIR" 2> /dev/null)
 readonly CORE_ATTRIBUTES=$(git config --get --local --path core.attributesFile)
 if [[ $CORE_ATTRIBUTES ]]; then
 	readonly GIT_ATTRIBUTES=$CORE_ATTRIBUTES
-elif [[ $IS_BARE == 'true' ]] || [[ $IS_VCSH == 'true' ]]; then
+elif [[ $IS_BARE == "true" ]] || [[ $IS_VCSH == "true" ]]; then
 	readonly GIT_ATTRIBUTES="${GIT_DIR}/info/attributes"
 else
 	readonly GIT_ATTRIBUTES="${REPO}/.gitattributes"
@@ -110,26 +110,26 @@ die() {
 # verify that all requirements have been met
 run_safety_checks() {
 	# validate that we're in a git repository
-	[[ $GIT_DIR ]] || die 'you are not currently in a git repository; did you forget to run "git init"?'
+	[[ $GIT_DIR ]] || die "you are not currently in a git repository; did you forget to run "git init"?"
 
 	# exit if transcrypt is not in the required state
 	if [[ $requires_existing_config ]] && [[ ! $CONFIGURED ]]; then
-		die 1 'the current repository is not configured'
+		die 1 "the current repository is not configured"
 	elif [[ ! $requires_existing_config ]] && [[ $CONFIGURED ]]; then
-		die 1 'the current repository is already configured; see --display'
+		die 1 "the current repository is already configured; see --display"
 	fi
 
 	# check for dependencies
 	for cmd in {column,grep,mktemp,openssl,sed,tee}; do
-		command -v $cmd > /dev/null || die 'required command "%s" was not found' "$cmd"
+		command -v $cmd > /dev/null || die "required command "%s" was not found" "$cmd"
 	done
 
 	# ensure the repository is clean (if it has a HEAD revision) so we can force
 	# checkout files without the destruction of uncommitted changes
-	if [[ $requires_clean_repo ]] && [[ $HEAD_EXISTS ]] && [[ $IS_BARE == 'false' ]]; then
+	if [[ $requires_clean_repo ]] && [[ $HEAD_EXISTS ]] && [[ $IS_BARE == "false" ]]; then
 		# check if the repo is dirty
 		if ! git diff-index --quiet HEAD --; then
-			die 1 'the repo is dirty; commit or stash your changes before running transcrypt'
+			die 1 "the repo is dirty; commit or stash your changes before running transcrypt"
 		fi
 	fi
 }
@@ -139,12 +139,12 @@ validate_cipher() {
 	local supported=$(openssl list-cipher-commands | grep --line-regexp "$cipher")
 	if [[ ! $supported ]]; then
 		if [[ $interactive ]]; then
-			printf '"%s" is not a valid cipher; choose one of the following:\n\n' "$cipher"
+			printf ""%s" is not a valid cipher; choose one of the following:\n\n" "$cipher"
 			openssl list-cipher-commands | column -c 80
-			printf '\n'
+			printf "\n"
 			unset cipher
 		else
-			die 1 '"%s" is not a valid cipher; see `openssl list-cipher-commands`' "$cipher"
+			die 1 ""%s" is not a valid cipher; see `openssl list-cipher-commands`" "$cipher"
 		fi
 	fi
 }
@@ -155,7 +155,7 @@ get_cipher() {
 	do
 		local answer
 		if [[ $interactive ]]; then
-			printf 'Encrypt using which cipher? [%s] ' "$DEFAULT_CIPHER"
+			printf "Encrypt using which cipher? [%s] " "$DEFAULT_CIPHER"
 			read -r answer
 		fi
 
@@ -176,9 +176,9 @@ get_password() {
 	do
 		local answer
 		if [[ $interactive ]]; then
-			printf 'Generate a random password? [Y/n] '
+			printf "Generate a random password? [Y/n] "
 			read -r -n 1 -s answer
-			printf '\n'
+			printf "\n"
 		fi
 
 		# generate a random password if the user answered yes;
@@ -188,9 +188,9 @@ get_password() {
 			local random_base64=$(openssl rand -base64 $password_length)
 			password=$random_base64
 		else
-			printf 'Password: '
+			printf "Password: "
 			read -r password
-			[[ ! $password ]] && printf 'no password was specified\n'
+			[[ ! $password ]] && printf "no password was specified\n"
 		fi
 	done
 }
@@ -199,22 +199,22 @@ get_password() {
 confirm_configuration() {
 	local answer
 
-	printf '\nRepository metadata:\n\n'
-	[[ $REPO ]] && printf '  GIT_WORK_TREE:  %s\n' "$REPO"
-	printf '  GIT_DIR:        %s\n' "$GIT_DIR"
-	printf '  GIT_ATTRIBUTES: %s\n\n' "$GIT_ATTRIBUTES"
-	printf 'The following configuration will be saved:\n\n'
-	printf '  CIPHER:   %s\n' "$cipher"
-	printf '  PASSWORD: %s\n\n' "$password"
-	printf 'Does this look correct? [Y/n] '
+	printf "\nRepository metadata:\n\n"
+	[[ $REPO ]] && printf "  GIT_WORK_TREE:  %s\n" "$REPO"
+	printf "  GIT_DIR:        %s\n" "$GIT_DIR"
+	printf "  GIT_ATTRIBUTES: %s\n\n" "$GIT_ATTRIBUTES"
+	printf "The following configuration will be saved:\n\n"
+	printf "  CIPHER:   %s\n" "$cipher"
+	printf "  PASSWORD: %s\n\n" "$password"
+	printf "Does this look correct? [Y/n] "
 	read -r -n 1 -s answer
 
 	# exit if the user did not confirm
 	if [[ $answer =~ $YES_REGEX ]] || [[ ! $answer ]]; then
-		printf '\n\n'
+		printf "\n\n"
 	else
-		printf '\n'
-		die 1 'configuration has been aborted'
+		printf "\n"
+		die 1 "configuration has been aborted"
 	fi
 }
 
@@ -222,37 +222,37 @@ confirm_configuration() {
 confirm_rekey() {
 	local answer
 
-	printf '\nRepository metadata:\n\n'
-	[[ $REPO ]] && printf '  GIT_WORK_TREE:  %s\n' "$REPO"
-	printf '  GIT_DIR:        %s\n' "$GIT_DIR"
-	printf '  GIT_ATTRIBUTES: %s\n\n' "$GIT_ATTRIBUTES"
-	printf 'The following configuration will be saved:\n\n'
-	printf '  CIPHER:   %s\n' "$cipher"
-	printf '  PASSWORD: %s\n\n' "$password"
-	printf 'You are about to re-encrypt all encrypted files using new credentials.\n'
-	printf 'Once you do this, their historical diffs will no longer display in plain text.\n\n'
-	printf 'Proceed with rekey? [y/N] '
+	printf "\nRepository metadata:\n\n"
+	[[ $REPO ]] && printf "  GIT_WORK_TREE:  %s\n" "$REPO"
+	printf "  GIT_DIR:        %s\n" "$GIT_DIR"
+	printf "  GIT_ATTRIBUTES: %s\n\n" "$GIT_ATTRIBUTES"
+	printf "The following configuration will be saved:\n\n"
+	printf "  CIPHER:   %s\n" "$cipher"
+	printf "  PASSWORD: %s\n\n" "$password"
+	printf "You are about to re-encrypt all encrypted files using new credentials.\n"
+	printf "Once you do this, their historical diffs will no longer display in plain text.\n\n"
+	printf "Proceed with rekey? [y/N] "
 	read -r answer
 
 	# only rekey if the user explicitly confirmed
 	if [[ $answer =~ $YES_REGEX ]]; then
-		printf '\n'
+		printf "\n"
 	else
-		die 1 'rekeying has been aborted'
+		die 1 "rekeying has been aborted"
 	fi
 }
 
 # automatically stage rekeyed files in preparation for the user to commit them
 stage_rekeyed_files() {
 	local encrypted_files=$(git ls-crypt)
-	if [[ $encrypted_files ]] && [[ $IS_BARE == 'false' ]]; then
+	if [[ $encrypted_files ]] && [[ $IS_BARE == "false" ]]; then
 		# touch all encrypted files to prevent stale stat info
-		cd "$REPO" || die 1 'could not change into the "%s" directory' "$REPO"
+		cd "$REPO" || die 1 "could not change into the "%s" directory" "$REPO"
 		touch $encrypted_files
 		git update-index --add -- $encrypted_files
 
-		printf '***  rekeyed files have been staged  ***\n'
-		printf '*** COMMIT THESE CHANGES RIGHT AWAY! ***\n\n'
+		printf "***  rekeyed files have been staged  ***\n"
+		printf "*** COMMIT THESE CHANGES RIGHT AWAY! ***\n\n"
 	fi
 }
 
@@ -267,14 +267,14 @@ save_helper_scripts() {
 	# (keyed with a combination of the filename and transcrypt password), and
 	# then use the last 16 bytes of that HMAC for the file's unique salt.
 
-	cat <<-'EOF' > "${GIT_DIR}/crypt/clean"
+	cat <<-"EOF" > "${GIT_DIR}/crypt/clean"
 		#!/usr/bin/env bash
 		filename=$1
 		# ignore empty files
 		if [[ -s $filename ]]; then
 		  # cache STDIN to test if it's already encrypted
 		  tempfile=$(mktemp 2> /dev/null || mktemp -t tmp)
-		  trap 'rm -f "$tempfile"' EXIT
+		  trap "rm -f "$tempfile"" EXIT
 		  tee "$tempfile" &> /dev/null
 		  # the first bytes of an encrypted file are always "Salted" in Base64
 		  read -n 8 firstbytes < "$tempfile"
@@ -289,16 +289,16 @@ save_helper_scripts() {
 		fi
 	EOF
 
-	cat <<-'EOF' > "${GIT_DIR}/crypt/smudge"
+	cat <<-"EOF" > "${GIT_DIR}/crypt/smudge"
 		#!/usr/bin/env bash
 		tempfile=$(mktemp 2> /dev/null || mktemp -t tmp)
-		trap 'rm -f "$tempfile"' EXIT
+		trap "rm -f "$tempfile"" EXIT
 		cipher=$(git config --get --local transcrypt.cipher)
 		password=$(git config --get --local transcrypt.password)
 		tee "$tempfile" | ENC_PASS=$password openssl enc -$cipher -md MD5 -pass env:ENC_PASS -d -a 2> /dev/null || cat "$tempfile"
 	EOF
 
-	cat <<-'EOF' > "${GIT_DIR}/crypt/textconv"
+	cat <<-"EOF" > "${GIT_DIR}/crypt/textconv"
 		#!/usr/bin/env bash
 		filename=$1
 		# ignore empty files
@@ -328,38 +328,38 @@ save_configuration() {
 	if [[ -d $(git rev-parse --git-common-dir) ]]; then
 		# this allows us to support multiple working trees via git-worktree
 		# ...but the --git-common-dir flag was only added in November 2014
-		git config filter.crypt.clean '"$(git rev-parse --git-common-dir)"/crypt/clean %f'
-		git config filter.crypt.smudge '"$(git rev-parse --git-common-dir)"/crypt/smudge'
-		git config diff.crypt.textconv '"$(git rev-parse --git-common-dir)"/crypt/textconv'
+		git config filter.crypt.clean ""$(git rev-parse --git-common-dir)"/crypt/clean %f"
+		git config filter.crypt.smudge ""$(git rev-parse --git-common-dir)"/crypt/smudge"
+		git config diff.crypt.textconv ""$(git rev-parse --git-common-dir)"/crypt/textconv"
 	else
-		git config filter.crypt.clean '"$(git rev-parse --git-dir)"/crypt/clean %f'
-		git config filter.crypt.smudge '"$(git rev-parse --git-dir)"/crypt/smudge'
-		git config diff.crypt.textconv '"$(git rev-parse --git-dir)"/crypt/textconv'
+		git config filter.crypt.clean ""$(git rev-parse --git-dir)"/crypt/clean %f"
+		git config filter.crypt.smudge ""$(git rev-parse --git-dir)"/crypt/smudge"
+		git config diff.crypt.textconv ""$(git rev-parse --git-dir)"/crypt/textconv"
 	fi
-	git config filter.crypt.required 'true'
-	git config diff.crypt.cachetextconv 'true'
-	git config diff.crypt.binary 'true'
-	git config merge.renormalize 'true'
+	git config filter.crypt.required "true"
+	git config diff.crypt.cachetextconv "true"
+	git config diff.crypt.binary "true"
+	git config merge.renormalize "true"
 
 	# add a git alias for listing encrypted files
-	git config alias.ls-crypt "!git ls-files | git check-attr --stdin filter | awk 'BEGIN { FS = \":\" }; /crypt$/{ print \$1 }'"
+	git config alias.ls-crypt "!git ls-files | git check-attr --stdin filter | awk "BEGIN { FS = \":\" }; /crypt$/{ print \$1 }""
 }
 
 # display the current configuration settings
 display_configuration() {
 	local current_cipher=$(git config --get --local transcrypt.cipher)
 	local current_password=$(git config --get --local transcrypt.password)
-	local escaped_password=${current_password//\'/\'\\\'\'}
+	local escaped_password=${current_password//\"/\"\\\"\"}
 
-	printf 'The current repository was configured using transcrypt version %s\n' "$CONFIGURED"
-	printf 'and has the following configuration:\n\n'
-	[[ $REPO ]] && printf '  GIT_WORK_TREE:  %s\n' "$REPO"
-	printf '  GIT_DIR:        %s\n' "$GIT_DIR"
-	printf '  GIT_ATTRIBUTES: %s\n\n' "$GIT_ATTRIBUTES"
-	printf '  CIPHER:   %s\n' "$current_cipher"
-	printf '  PASSWORD: %s\n\n' "$current_password"
-	printf 'Copy and paste the following command to initialize a cloned repository:\n\n'
-	printf "  transcrypt -c %s -p '%s'\n" "$current_cipher" "$escaped_password"
+	printf "The current repository was configured using transcrypt version %s\n" "$CONFIGURED"
+	printf "and has the following configuration:\n\n"
+	[[ $REPO ]] && printf "  GIT_WORK_TREE:  %s\n" "$REPO"
+	printf "  GIT_DIR:        %s\n" "$GIT_DIR"
+	printf "  GIT_ATTRIBUTES: %s\n\n" "$GIT_ATTRIBUTES"
+	printf "  CIPHER:   %s\n" "$current_cipher"
+	printf "  PASSWORD: %s\n\n" "$current_password"
+	printf "Copy and paste the following command to initialize a cloned repository:\n\n"
+	printf "  transcrypt -c %s -p "%s"\n" "$current_cipher" "$escaped_password"
 }
 
 # remove transcrypt-related settings from the repository's git config
@@ -370,7 +370,7 @@ clean_gitconfig() {
 	git config --unset merge.renormalize
 
 	# remove the merge section if it's now empty
-	local merge_values=$(git config --get-regex --local 'merge\..*')
+	local merge_values=$(git config --get-regex --local "merge\..*")
 	if [[ ! $merge_values ]]; then
 		git config --remove-section merge
 	fi
@@ -381,12 +381,12 @@ clean_gitconfig() {
 # or it will encrypt locally decrypted files if you've just flushed the credentials
 force_checkout() {
 	# make sure a HEAD revision exists
-	if [[ $HEAD_EXISTS ]] && [[ $IS_BARE == 'false' ]]; then
+	if [[ $HEAD_EXISTS ]] && [[ $IS_BARE == "false" ]]; then
 		# this would normally delete uncommitted changes in the working directory,
 		# but we already made sure the repo was clean during the safety checks
 		local encrypted_files=$(git ls-crypt)
-		cd "$REPO" || die 1 'could not change into the "%s" directory' "$REPO"
-		IFS=$'\n'
+		cd "$REPO" || die 1 "could not change into the "%s" directory" "$REPO"
+		IFS=$"\n"
 		for file in $encrypted_files; do
 			rm "$file"
 			git checkout --force HEAD -- "$file" > /dev/null
@@ -401,14 +401,14 @@ flush_credentials() {
 	local answer
 
 	if [[ $interactive ]]; then
-		printf 'You are about to flush the local credentials; make sure you have saved them elsewhere.\n'
-		printf 'All previously decrypted files will revert to their encrypted form.\n\n'
-		printf 'Proceed with credential flush? [y/N] '
+		printf "You are about to flush the local credentials; make sure you have saved them elsewhere.\n"
+		printf "All previously decrypted files will revert to their encrypted form.\n\n"
+		printf "Proceed with credential flush? [y/N] "
 		read -r answer
-		printf '\n'
+		printf "\n"
 	else
 		# although destructive, we should support the --yes option
-		answer='y'
+		answer="y"
 	fi
 
 	# only flush if the user explicitly confirmed
@@ -418,9 +418,9 @@ flush_credentials() {
 		# re-encrypt any files that had been previously decrypted
 		force_checkout
 
-		printf 'The local transcrypt credentials have been successfully flushed.\n'
+		printf "The local transcrypt credentials have been successfully flushed.\n"
 	else
-		die 1 'flushing of credentials has been aborted'
+		die 1 "flushing of credentials has been aborted"
 	fi
 }
 
@@ -429,14 +429,14 @@ uninstall_transcrypt() {
 	local answer
 
 	if [[ $interactive ]]; then
-		printf 'You are about to remove all transcrypt configuration from your repository.\n'
-		printf 'All previously encrypted files will remain decrypted in this working copy.\n\n'
-		printf 'Proceed with uninstall? [y/N] '
+		printf "You are about to remove all transcrypt configuration from your repository.\n"
+		printf "All previously encrypted files will remain decrypted in this working copy.\n\n"
+		printf "Proceed with uninstall? [y/N] "
 		read -r answer
-		printf '\n'
+		printf "\n"
 	else
 		# although destructive, we should support the --yes option
-		answer='y'
+		answer="y"
 	fi
 
 	# only uninstall if the user explicitly confirmed
@@ -451,8 +451,8 @@ uninstall_transcrypt() {
 
 		# touch all encrypted files to prevent stale stat info
 		local encrypted_files=$(git ls-crypt)
-		if [[ $encrypted_files ]] && [[ $IS_BARE == 'false' ]]; then
-			cd "$REPO" || die 1 'could not change into the "%s" directory' "$REPO"
+		if [[ $encrypted_files ]] && [[ $IS_BARE == "false" ]]; then
+			cd "$REPO" || die 1 "could not change into the "%s" directory" "$REPO"
 			touch $encrypted_files
 		fi
 
@@ -460,7 +460,7 @@ uninstall_transcrypt() {
 		git config --unset alias.ls-crypt
 
 		# remove the alias section if it's now empty
-		local alias_values=$(git config --get-regex --local 'alias\..*')
+		local alias_values=$(git config --get-regex --local "alias\..*")
 		if [[ ! $alias_values ]]; then
 			git config --remove-section alias
 		fi
@@ -468,24 +468,24 @@ uninstall_transcrypt() {
 		# remove any defined crypt patterns in gitattributes
 		case $OSTYPE in
 			darwin*)
-				sed -i '' '/filter=crypt diff=crypt[ \t]*$/d' "$GIT_ATTRIBUTES"
+				sed -i "" "/filter=crypt diff=crypt[ \t]*$/d" "$GIT_ATTRIBUTES"
 				;;
 			linux*)
-				sed -i '/filter=crypt diff=crypt[ \t]*$/d' "$GIT_ATTRIBUTES"
+				sed -i "/filter=crypt diff=crypt[ \t]*$/d" "$GIT_ATTRIBUTES"
 				;;
 		esac
 
-		printf 'The transcrypt configuration has been completely removed from the repository.\n'
+		printf "The transcrypt configuration has been completely removed from the repository.\n"
 	else
-		die 1 'uninstallation has been aborted'
+		die 1 "uninstallation has been aborted"
 	fi
 }
 
 # list all of the currently encrypted files in the repository
 list_files() {
-	if [[ $IS_BARE == 'false' ]]; then
-		cd "$REPO" || die 1 'could not change into the "%s" directory' "$REPO"
-		git ls-files | git check-attr --stdin filter | awk 'BEGIN { FS = ":" }; /crypt$/{ print $1 }'
+	if [[ $IS_BARE == "false" ]]; then
+		cd "$REPO" || die 1 "could not change into the "%s" directory" "$REPO"
+		git ls-files | git check-attr --stdin filter | awk "BEGIN { FS = ":" }; /crypt$/{ print $1 }"
 	fi
 }
 
@@ -497,19 +497,19 @@ show_raw_file() {
 		if git ls-files --others -- "$show_file" | awk "/${escaped_file}/{ exit 1 }"; then
 			file_paths=$(git ls-tree --name-only --full-name HEAD "$show_file")
 		else
-			die 1 'the file "%s" is not currently being tracked by git' "$show_file"
+			die 1 "the file "%s" is not currently being tracked by git" "$show_file"
 		fi
-	elif [[ $show_file == '*' ]]; then
+	elif [[ $show_file == "*" ]]; then
 		file_paths=$(git ls-crypt)
 	else
-		die 1 'the file "%s" does not exist' "$show_file"
+		die 1 "the file "%s" does not exist" "$show_file"
 	fi
 
-	IFS=$'\n'
+	IFS=$"\n"
 	for file in $file_paths; do
-		printf '==> %s <==\n' "$file" >&2
+		printf "==> %s <==\n" "$file" >&2
 		git --no-pager show HEAD:"$file" --no-textconv
-		printf '\n' >&2
+		printf "\n" >&2
 	done
 	unset IFS
 }
@@ -517,11 +517,11 @@ show_raw_file() {
 # export password and cipher to a gpg encrypted file
 export_gpg() {
 	# check for dependencies
-	command -v gpg > /dev/null || die 'required command "gpg" was not found'
+	command -v gpg > /dev/null || die "required command "gpg" was not found"
 
 	# ensure the recipient key exists
 	if ! gpg --list-keys "$gpg_recipient" 2> /dev/null; then
-		die 1 'GPG recipient key "%s" does not exist' "$gpg_recipient"
+		die 1 "GPG recipient key "%s" does not exist" "$gpg_recipient"
 	fi
 
 	local current_cipher=$(git config --get --local transcrypt.cipher)
@@ -529,14 +529,14 @@ export_gpg() {
 	[[ ! -d "${GIT_DIR}/crypt" ]] && mkdir "${GIT_DIR}/crypt"
 
 	local gpg_encrypt_cmd="gpg --batch --recipient $gpg_recipient --trust-model always --yes --armor --quiet --encrypt -"
-	printf 'password=%s\ncipher=%s\n' "$current_password" "$current_cipher" | $gpg_encrypt_cmd > "${GIT_DIR}/crypt/${gpg_recipient}.asc"
+	printf "password=%s\ncipher=%s\n" "$current_password" "$current_cipher" | $gpg_encrypt_cmd > "${GIT_DIR}/crypt/${gpg_recipient}.asc"
 	printf "The transcrypt configuration has been encrypted and exported to:\n%s/crypt/%s.asc\n" "$GIT_DIR" "$gpg_recipient"
 }
 
 # import password and cipher from a gpg encrypted file
 import_gpg() {
 	# check for dependencies
-	command -v gpg > /dev/null || die 'required command "gpg" was not found'
+	command -v gpg > /dev/null || die "required command "gpg" was not found"
 
 	local path
 	if [[ -f "${GIT_DIR}/crypt/${gpg_import_file}" ]]; then
@@ -544,25 +544,25 @@ import_gpg() {
 	elif [[ -f "${GIT_DIR}/crypt/${gpg_import_file}.asc" ]]; then
 		path="${GIT_DIR}/crypt/${gpg_import_file}.asc"
 	elif [[ ! -f $gpg_import_file ]]; then
-		die 1 'the file "%s" does not exist' "$gpg_import_file"
+		die 1 "the file "%s" does not exist" "$gpg_import_file"
 	else
 		path="$gpg_import_file"
 	fi
 
 	local configuration
-	local saftey_counter  # fix for intermittent 'no secret key' decryption failures
+	local saftey_counter  # fix for intermittent "no secret key" decryption failures
 	while [[ ! $configuration ]]
 	do
 		configuration=$(gpg --batch --quiet --decrypt "$path")
 
 		saftey_counter=$((saftey_counter + 1))
 		if [[ $saftey_counter -eq 3 ]]; then
-			die 1 'unable to decrypt the file "%s"' "$path"
+			die 1 "unable to decrypt the file "%s"" "$path"
 		fi
 	done
 
-	cipher=$(printf '%s' "$configuration" | grep '^cipher' | cut -d'=' -f 2-)
-	password=$(printf '%s' "$configuration" | grep '^password' | cut -d'=' -f 2-)
+	cipher=$(printf "%s" "$configuration" | grep "^cipher" | cut -d"=" -f 2-)
+	password=$(printf "%s" "$configuration" | grep "^password" | cut -d"=" -f 2-)
 }
 
 # print this script's usage message to stderr
@@ -660,9 +660,9 @@ help() {
 	     a file in your repository, the file  will  be  transparently  encrypted
 	     once you stage and commit it:
 
-	         $ echo 'sensitive_file  filter=crypt diff=crypt' >> .gitattributes
+	         $ echo "sensitive_file  filter=crypt diff=crypt" >> .gitattributes
 	         $ git add .gitattributes sensitive_file
-	         $ git commit -m 'Add encrypted version of a sensitive file'
+	         $ git commit -m "Add encrypted version of a sensitive file"
 
 	     See the gitattributes(5) man page for more information.
 
@@ -689,23 +689,23 @@ help() {
 ##### MAIN
 
 # reset all variables that might be set
-cipher=''
-password=''
-interactive='true'
-display_config=''
-rekey=''
-flush_creds=''
-uninstall=''
-show_file=''
-gpg_recipient=''
-gpg_import_file=''
+cipher=""
+password=""
+interactive="true"
+display_config=""
+rekey=""
+flush_creds=""
+uninstall=""
+show_file=""
+gpg_recipient=""
+gpg_import_file=""
 
 # used to bypass certain safety checks
-requires_existing_config=''
-requires_clean_repo='true'
+requires_existing_config=""
+requires_clean_repo="true"
 
 # parse command line options
-while [[ "$1" != '' ]]
+while [[ "$1" != "" ]]
 do
 	case $1 in
 		-c | --cipher)
@@ -726,24 +726,24 @@ do
 			unset interactive
 			;;
 		-d | --display)
-			display_config='true'
-			requires_existing_config='true'
+			display_config="true"
+			requires_existing_config="true"
 			unset requires_clean_repo
 			;;
 		-r | --rekey)
-			rekey='true'
-			requires_existing_config='true'
+			rekey="true"
+			requires_existing_config="true"
 			;;
 		-f | --flush-credentials)
-			flush_creds='true'
-			requires_existing_config='true'
+			flush_creds="true"
+			requires_existing_config="true"
 			;;
 		-F | --force)
 			unset requires_clean_repo
 			;;
 		-u | --uninstall)
-			uninstall='true'
-			requires_existing_config='true'
+			uninstall="true"
+			requires_existing_config="true"
 			unset requires_clean_repo
 			;;
 		-l | --list)
@@ -762,13 +762,13 @@ do
 			;;
 		-e | --export-gpg)
 			gpg_recipient=$2
-			requires_existing_config='true'
+			requires_existing_config="true"
 			unset requires_clean_repo
 			shift
 			;;
 		--export-gpg=*)
 			gpg_recipient=${1#*=}
-			requires_existing_config='true'
+			requires_existing_config="true"
 			unset requires_clean_repo
 			;;
 		-i | --import-gpg)
@@ -779,7 +779,7 @@ do
 			gpg_import_file=${1#*=}
 			;;
 		-v | --version)
-			printf 'transcrypt %s\n' "$VERSION"
+			printf "transcrypt %s\n" "$VERSION"
 			exit 0
 			;;
 		-h | --help | -\?)
@@ -787,12 +787,12 @@ do
 			exit 0
 			;;
 		--*)
-			warn 'unknown option -- %s' "${1#--}"
+			warn "unknown option -- %s" "${1#--}"
 			usage
 			exit 1
 			;;
 		*)
-			warn 'unknown option -- %s' "${1#-}"
+			warn "unknown option -- %s" "${1#-}"
 			usage
 			exit 1
 			;;
@@ -810,7 +810,7 @@ if [[ $uninstall ]]; then
 	exit 0
 elif [[ $display_config ]] && [[ $flush_creds ]]; then
 	display_configuration
-	printf '\n'
+	printf "\n"
 	flush_credentials
 	exit 0
 elif [[ $display_config ]]; then
@@ -849,9 +849,9 @@ fi
 # ensure the git attributes file exists
 if [[ ! -f $GIT_ATTRIBUTES ]]; then
 	mkdir -p "${GIT_ATTRIBUTES%/*}"
-	printf '#pattern  filter=crypt diff=crypt\n' > "$GIT_ATTRIBUTES"
+	printf "#pattern  filter=crypt diff=crypt\n" > "$GIT_ATTRIBUTES"
 fi
 
-printf 'The repository has been successfully configured by transcrypt.\n'
+printf "The repository has been successfully configured by transcrypt.\n"
 
 exit 0
