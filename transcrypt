@@ -64,9 +64,9 @@ realpath() {
 	fi
 
 	if [[ -d $dirname && -e $abspath ]]; then
-		printf "%s\n" "$abspath"
+		printf "%s\\n" "$abspath"
 	else
-		printf "invalid path: %s\n" "$path" >&2
+		printf "invalid path: %s\\n" "$path" >&2
 		exit 1
 	fi
 }
@@ -92,7 +92,7 @@ fi
 warn() {
 	local fmt="$1"
 	shift
-	printf "transcrypt: $fmt\n" "$@" >&2
+	printf "transcrypt: $fmt\\n" "$@" >&2
 }
 
 # print a message to stderr and exit with either
@@ -139,9 +139,9 @@ validate_cipher() {
 	local supported=$(openssl list-cipher-commands | grep --line-regexp "$cipher")
 	if [[ ! $supported ]]; then
 		if [[ $interactive ]]; then
-			printf ""%s" is not a valid cipher; choose one of the following:\n\n" "$cipher"
+			printf ""%s" is not a valid cipher; choose one of the following:\\n\\n" "$cipher"
 			openssl list-cipher-commands | column -c 80
-			printf "\n"
+			printf "\\n"
 			unset cipher
 		else
 			die 1 ""%s" is not a valid cipher; see `openssl list-cipher-commands`" "$cipher"
@@ -178,7 +178,7 @@ get_password() {
 		if [[ $interactive ]]; then
 			printf "Generate a random password? [Y/n] "
 			read -r -n 1 -s answer
-			printf "\n"
+			printf "\\n"
 		fi
 
 		# generate a random password if the user answered yes;
@@ -190,7 +190,7 @@ get_password() {
 		else
 			printf "Password: "
 			read -r password
-			[[ ! $password ]] && printf "no password was specified\n"
+			[[ ! $password ]] && printf "no password was specified\\n"
 		fi
 	done
 }
@@ -199,21 +199,21 @@ get_password() {
 confirm_configuration() {
 	local answer
 
-	printf "\nRepository metadata:\n\n"
-	[[ $REPO ]] && printf "  GIT_WORK_TREE:  %s\n" "$REPO"
-	printf "  GIT_DIR:        %s\n" "$GIT_DIR"
-	printf "  GIT_ATTRIBUTES: %s\n\n" "$GIT_ATTRIBUTES"
-	printf "The following configuration will be saved:\n\n"
-	printf "  CIPHER:   %s\n" "$cipher"
-	printf "  PASSWORD: %s\n\n" "$password"
+	printf "\\nRepository metadata:\\n\\n"
+	[[ $REPO ]] && printf "  GIT_WORK_TREE:  %s\\n" "$REPO"
+	printf "  GIT_DIR:        %s\\n" "$GIT_DIR"
+	printf "  GIT_ATTRIBUTES: %s\\n\\n" "$GIT_ATTRIBUTES"
+	printf "The following configuration will be saved:\\n\\n"
+	printf "  CIPHER:   %s\\n" "$cipher"
+	printf "  PASSWORD: %s\\n\\n" "$password"
 	printf "Does this look correct? [Y/n] "
 	read -r -n 1 -s answer
 
 	# exit if the user did not confirm
 	if [[ $answer =~ $YES_REGEX ]] || [[ ! $answer ]]; then
-		printf "\n\n"
+		printf "\\n\\n"
 	else
-		printf "\n"
+		printf "\\n"
 		die 1 "configuration has been aborted"
 	fi
 }
@@ -222,21 +222,21 @@ confirm_configuration() {
 confirm_rekey() {
 	local answer
 
-	printf "\nRepository metadata:\n\n"
-	[[ $REPO ]] && printf "  GIT_WORK_TREE:  %s\n" "$REPO"
-	printf "  GIT_DIR:        %s\n" "$GIT_DIR"
-	printf "  GIT_ATTRIBUTES: %s\n\n" "$GIT_ATTRIBUTES"
-	printf "The following configuration will be saved:\n\n"
-	printf "  CIPHER:   %s\n" "$cipher"
-	printf "  PASSWORD: %s\n\n" "$password"
-	printf "You are about to re-encrypt all encrypted files using new credentials.\n"
-	printf "Once you do this, their historical diffs will no longer display in plain text.\n\n"
+	printf "\\nRepository metadata:\\n\\n"
+	[[ $REPO ]] && printf "  GIT_WORK_TREE:  %s\\n" "$REPO"
+	printf "  GIT_DIR:        %s\\n" "$GIT_DIR"
+	printf "  GIT_ATTRIBUTES: %s\\n\\n" "$GIT_ATTRIBUTES"
+	printf "The following configuration will be saved:\\n\\n"
+	printf "  CIPHER:   %s\\n" "$cipher"
+	printf "  PASSWORD: %s\\n\\n" "$password"
+	printf "You are about to re-encrypt all encrypted files using new credentials.\\n"
+	printf "Once you do this, their historical diffs will no longer display in plain text.\\n\\n"
 	printf "Proceed with rekey? [y/N] "
 	read -r answer
 
 	# only rekey if the user explicitly confirmed
 	if [[ $answer =~ $YES_REGEX ]]; then
-		printf "\n"
+		printf "\\n"
 	else
 		die 1 "rekeying has been aborted"
 	fi
@@ -251,8 +251,8 @@ stage_rekeyed_files() {
 		touch $encrypted_files
 		git update-index --add -- $encrypted_files
 
-		printf "***  rekeyed files have been staged  ***\n"
-		printf "*** COMMIT THESE CHANGES RIGHT AWAY! ***\n\n"
+		printf "***  rekeyed files have been staged  ***\\n"
+		printf "*** COMMIT THESE CHANGES RIGHT AWAY! ***\\n\\n"
 	fi
 }
 
@@ -351,15 +351,15 @@ display_configuration() {
 	local current_password=$(git config --get --local transcrypt.password)
 	local escaped_password=${current_password//\"/\"\\\"\"}
 
-	printf "The current repository was configured using transcrypt version %s\n" "$CONFIGURED"
-	printf "and has the following configuration:\n\n"
-	[[ $REPO ]] && printf "  GIT_WORK_TREE:  %s\n" "$REPO"
-	printf "  GIT_DIR:        %s\n" "$GIT_DIR"
-	printf "  GIT_ATTRIBUTES: %s\n\n" "$GIT_ATTRIBUTES"
-	printf "  CIPHER:   %s\n" "$current_cipher"
-	printf "  PASSWORD: %s\n\n" "$current_password"
-	printf "Copy and paste the following command to initialize a cloned repository:\n\n"
-	printf "  transcrypt -c %s -p "%s"\n" "$current_cipher" "$escaped_password"
+	printf "The current repository was configured using transcrypt version %s\\n" "$CONFIGURED"
+	printf "and has the following configuration:\\n\\n"
+	[[ $REPO ]] && printf "  GIT_WORK_TREE:  %s\\n" "$REPO"
+	printf "  GIT_DIR:        %s\\n" "$GIT_DIR"
+	printf "  GIT_ATTRIBUTES: %s\\n\\n" "$GIT_ATTRIBUTES"
+	printf "  CIPHER:   %s\\n" "$current_cipher"
+	printf "  PASSWORD: %s\\n\\n" "$current_password"
+	printf "Copy and paste the following command to initialize a cloned repository:\\n\\n"
+	printf "  transcrypt -c %s -p "%s"\\n" "$current_cipher" "$escaped_password"
 }
 
 # remove transcrypt-related settings from the repository's git config
@@ -386,7 +386,7 @@ force_checkout() {
 		# but we already made sure the repo was clean during the safety checks
 		local encrypted_files=$(git ls-crypt)
 		cd "$REPO" || die 1 "could not change into the "%s" directory" "$REPO"
-		IFS=$"\n"
+		IFS=$"\\n"
 		for file in $encrypted_files; do
 			rm "$file"
 			git checkout --force HEAD -- "$file" > /dev/null
@@ -401,11 +401,11 @@ flush_credentials() {
 	local answer
 
 	if [[ $interactive ]]; then
-		printf "You are about to flush the local credentials; make sure you have saved them elsewhere.\n"
-		printf "All previously decrypted files will revert to their encrypted form.\n\n"
+		printf "You are about to flush the local credentials; make sure you have saved them elsewhere.\\n"
+		printf "All previously decrypted files will revert to their encrypted form.\\n\\n"
 		printf "Proceed with credential flush? [y/N] "
 		read -r answer
-		printf "\n"
+		printf "\\n"
 	else
 		# although destructive, we should support the --yes option
 		answer="y"
@@ -418,7 +418,7 @@ flush_credentials() {
 		# re-encrypt any files that had been previously decrypted
 		force_checkout
 
-		printf "The local transcrypt credentials have been successfully flushed.\n"
+		printf "The local transcrypt credentials have been successfully flushed.\\n"
 	else
 		die 1 "flushing of credentials has been aborted"
 	fi
@@ -429,11 +429,11 @@ uninstall_transcrypt() {
 	local answer
 
 	if [[ $interactive ]]; then
-		printf "You are about to remove all transcrypt configuration from your repository.\n"
-		printf "All previously encrypted files will remain decrypted in this working copy.\n\n"
+		printf "You are about to remove all transcrypt configuration from your repository.\\n"
+		printf "All previously encrypted files will remain decrypted in this working copy.\\n\\n"
 		printf "Proceed with uninstall? [y/N] "
 		read -r answer
-		printf "\n"
+		printf "\\n"
 	else
 		# although destructive, we should support the --yes option
 		answer="y"
@@ -475,7 +475,7 @@ uninstall_transcrypt() {
 				;;
 		esac
 
-		printf "The transcrypt configuration has been completely removed from the repository.\n"
+		printf "The transcrypt configuration has been completely removed from the repository.\\n"
 	else
 		die 1 "uninstallation has been aborted"
 	fi
@@ -505,11 +505,11 @@ show_raw_file() {
 		die 1 "the file "%s" does not exist" "$show_file"
 	fi
 
-	IFS=$"\n"
+	IFS=$"\\n"
 	for file in $file_paths; do
-		printf "==> %s <==\n" "$file" >&2
+		printf "==> %s <==\\n" "$file" >&2
 		git --no-pager show HEAD:"$file" --no-textconv
-		printf "\n" >&2
+		printf "\\n" >&2
 	done
 	unset IFS
 }
@@ -529,8 +529,8 @@ export_gpg() {
 	[[ ! -d "${GIT_DIR}/crypt" ]] && mkdir "${GIT_DIR}/crypt"
 
 	local gpg_encrypt_cmd="gpg --batch --recipient $gpg_recipient --trust-model always --yes --armor --quiet --encrypt -"
-	printf "password=%s\ncipher=%s\n" "$current_password" "$current_cipher" | $gpg_encrypt_cmd > "${GIT_DIR}/crypt/${gpg_recipient}.asc"
-	printf "The transcrypt configuration has been encrypted and exported to:\n%s/crypt/%s.asc\n" "$GIT_DIR" "$gpg_recipient"
+	printf "password=%s\\ncipher=%s\\n" "$current_password" "$current_cipher" | $gpg_encrypt_cmd > "${GIT_DIR}/crypt/${gpg_recipient}.asc"
+	printf "The transcrypt configuration has been encrypted and exported to:\\n%s/crypt/%s.asc\\n" "$GIT_DIR" "$gpg_recipient"
 }
 
 # import password and cipher from a gpg encrypted file
@@ -779,7 +779,7 @@ do
 			gpg_import_file=${1#*=}
 			;;
 		-v | --version)
-			printf "transcrypt %s\n" "$VERSION"
+			printf "transcrypt %s\\n" "$VERSION"
 			exit 0
 			;;
 		-h | --help | -\?)
@@ -810,7 +810,7 @@ if [[ $uninstall ]]; then
 	exit 0
 elif [[ $display_config ]] && [[ $flush_creds ]]; then
 	display_configuration
-	printf "\n"
+	printf "\\n"
 	flush_credentials
 	exit 0
 elif [[ $display_config ]]; then
@@ -849,9 +849,9 @@ fi
 # ensure the git attributes file exists
 if [[ ! -f $GIT_ATTRIBUTES ]]; then
 	mkdir -p "${GIT_ATTRIBUTES%/*}"
-	printf "#pattern  filter=crypt diff=crypt\n" > "$GIT_ATTRIBUTES"
+	printf "#pattern  filter=crypt diff=crypt\\n" > "$GIT_ATTRIBUTES"
 fi
 
-printf "The repository has been successfully configured by transcrypt.\n"
+printf "The repository has been successfully configured by transcrypt.\\n"
 
 exit 0
