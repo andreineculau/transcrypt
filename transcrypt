@@ -26,17 +26,20 @@ readonly YES_REGEX="^[Yy]$"
 ## Repository Metadata
 
 # whether or not transcrypt is already configured
-readonly CONFIGURED=$(git config --get --local transcrypt.version 2> /dev/null)
+readonly CONFIGURED_VERSION=$(git config --get --local transcrypt.version 2> /dev/null)
+readonly IS_CONFIGURED=$(test -n "${CONFIGURED_VERSION}" && echo true || echo false)
 
 # the current git repository's top-level directory
 readonly REPO=$(git rev-parse --show-toplevel 2> /dev/null)
 
 # whether or not a HEAD revision exists
-readonly HEAD_EXISTS=$(git rev-parse --verify --quiet HEAD 2> /dev/null)
+readonly HEAD_SHA=$(git rev-parse --verify --quiet HEAD 2> /dev/null)
+readonly HEAD_EXISTS=$(test -n "${HEAD_SHA}" && echo true || echo false)
 
 # https://github.com/RichiH/vcsh
 # whether or not the git repository is running under vcsh
-readonly IS_VCSH=$(git config --get --local --bool vcsh.vcsh 2> /dev/null)
+readonly VCSH=$(git config --get --local --bool vcsh.vcsh 2> /dev/null)
+readonly IS_VCSH=$(test -n "${VCSH}" && echo true || echo false)
 
 # whether or not the git repository is bare
 readonly IS_BARE=$(git rev-parse --is-bare-repository 2> /dev/null)
@@ -113,9 +116,9 @@ run_safety_checks() {
 	[[ $GIT_DIR ]] || die "you are not currently in a git repository; did you forget to run 'git init'?"
 
 	# exit if transcrypt is not in the required state
-	if [[ $requires_existing_config ]] && [[ ! $CONFIGURED ]]; then
+	if [[ $requires_existing_config == "true" ]] && [[ $IS_CONFIGURED == "false" ]]; then
 		die 1 "the current repository is not configured"
-	elif [[ ! $requires_existing_config ]] && [[ $CONFIGURED ]]; then
+	elif [[ $requires_existing_config == "false" ]] && [[ $IS_CONFIGURED == "true" ]]; then
 		die 1 "the current repository is already configured; see --display"
 	fi
 
@@ -126,7 +129,7 @@ run_safety_checks() {
 
 	# ensure the repository is clean (if it has a HEAD revision) so we can force
 	# checkout files without the destruction of uncommitted changes
-	if [[ $requires_clean_repo ]] && [[ $HEAD_EXISTS ]] && [[ $IS_BARE == "false" ]]; then
+	if [[ $requires_clean_repo == "true" ]] && [[ $HEAD_EXISTS == "true" ]] && [[ $IS_BARE == "false" ]]; then
 		# check if the repo is dirty
 		if ! git diff-index --quiet HEAD --; then
 			die 1 "the repo is dirty; commit or stash your changes before running transcrypt"
@@ -138,7 +141,7 @@ run_safety_checks() {
 validate_cipher() {
 	local supported=$(openssl list-cipher-commands | grep --line-regexp "$cipher")
 	if [[ ! $supported ]]; then
-		if [[ $interactive ]]; then
+		if [[ $interactive == "true" ]]; then
 			printf "'%s' is not a valid cipher; choose one of the following:\\n\\n" "$cipher"
 			openssl list-cipher-commands | column -c 80
 			printf "\\n"
@@ -154,7 +157,7 @@ get_cipher() {
 	while [[ ! $cipher ]]
 	do
 		local answer
-		if [[ $interactive ]]; then
+		if [[ $interactive == "true" ]]; then
 			printf "Encrypt using which cipher? [%s] " "$DEFAULT_CIPHER"
 			read -r answer
 		fi
@@ -175,7 +178,7 @@ get_password() {
 	while [[ ! $password ]]
 	do
 		local answer
-		if [[ $interactive ]]; then
+		if [[ $interactive == "true" ]]; then
 			printf "Generate a random password? [Y/n] "
 			read -r -n 1 -s answer
 			printf "\\n"
@@ -351,7 +354,7 @@ display_configuration() {
 	local current_password=$(git config --get --local transcrypt.password)
 	local escaped_password=${current_password//\"/\"\\\"\"}
 
-	printf "The current repository was configured using transcrypt version %s\\n" "$CONFIGURED"
+	printf "The current repository was configured using transcrypt version %s\\n" "$CONFIGURED_VERSION"
 	printf "and has the following configuration:\\n\\n"
 	[[ $REPO ]] && printf "  GIT_WORK_TREE:  %s\\n" "$REPO"
 	printf "  GIT_DIR:        %s\\n" "$GIT_DIR"
@@ -381,7 +384,7 @@ clean_gitconfig() {
 # or it will encrypt locally decrypted files if you've just flushed the credentials
 force_checkout() {
 	# make sure a HEAD revision exists
-	if [[ $HEAD_EXISTS ]] && [[ $IS_BARE == "false" ]]; then
+	if [[ $HEAD_EXISTS == "true" ]] && [[ $IS_BARE == "false" ]]; then
 		# this would normally delete uncommitted changes in the working directory,
 		# but we already made sure the repo was clean during the safety checks
 		local encrypted_files=$(git ls-crypt)
@@ -400,7 +403,7 @@ force_checkout() {
 flush_credentials() {
 	local answer
 
-	if [[ $interactive ]]; then
+	if [[ $interactive == "true" ]]; then
 		printf "You are about to flush the local credentials; make sure you have saved them elsewhere.\\n"
 		printf "All previously decrypted files will revert to their encrypted form.\\n\\n"
 		printf "Proceed with credential flush? [y/N] "
@@ -428,7 +431,7 @@ flush_credentials() {
 uninstall_transcrypt() {
 	local answer
 
-	if [[ $interactive ]]; then
+	if [[ $interactive == "true" ]]; then
 		printf "You are about to remove all transcrypt configuration from your repository.\\n"
 		printf "All previously encrypted files will remain decrypted in this working copy.\\n\\n"
 		printf "Proceed with uninstall? [y/N] "
@@ -692,16 +695,16 @@ help() {
 cipher=""
 password=""
 interactive="true"
-display_config=""
-rekey=""
-flush_creds=""
-uninstall=""
+display_config="false"
+rekey="false"
+flush_creds="false"
+uninstall="false"
 show_file=""
 gpg_recipient=""
 gpg_import_file=""
 
 # used to bypass certain safety checks
-requires_existing_config=""
+requires_existing_config="false"
 requires_clean_repo="true"
 
 # parse command line options
@@ -723,12 +726,12 @@ do
 			password=${1#*=}
 			;;
 		-y | --yes)
-			unset interactive
+			interactive="false"
 			;;
 		-d | --display)
 			display_config="true"
 			requires_existing_config="true"
-			unset requires_clean_repo
+			requires_clean_repo="false"
 			;;
 		-r | --rekey)
 			rekey="true"
@@ -739,12 +742,12 @@ do
 			requires_existing_config="true"
 			;;
 		-F | --force)
-			unset requires_clean_repo
+			requires_clean_repo="false"
 			;;
 		-u | --uninstall)
 			uninstall="true"
 			requires_existing_config="true"
-			unset requires_clean_repo
+			requires_clean_repo="false"
 			;;
 		-l | --list)
 			list_files
@@ -763,13 +766,13 @@ do
 		-e | --export-gpg)
 			gpg_recipient=$2
 			requires_existing_config="true"
-			unset requires_clean_repo
+			requires_clean_repo="false"
 			shift
 			;;
 		--export-gpg=*)
 			gpg_recipient=${1#*=}
 			requires_existing_config="true"
-			unset requires_clean_repo
+			requires_clean_repo="false"
 			;;
 		-i | --import-gpg)
 			gpg_import_file=$2
@@ -805,18 +808,18 @@ run_safety_checks
 
 # in order to keep behavior consistent no matter what order the options were
 # specified in, we must run these here rather than in the case statement above
-if [[ $uninstall ]]; then
+if [[ $uninstall == "true" ]]; then
 	uninstall_transcrypt
 	exit 0
-elif [[ $display_config ]] && [[ $flush_creds ]]; then
+elif [[ $display_config == "true" ]] && [[ $flush_creds == "true" ]]; then
 	display_configuration
 	printf "\\n"
 	flush_credentials
 	exit 0
-elif [[ $display_config ]]; then
+elif [[ $display_config == "true" ]]; then
 	display_configuration
 	exit 0
-elif [[ $flush_creds ]]; then
+elif [[ $flush_creds == "true" ]]; then
 	flush_credentials
 	exit 0
 elif [[ $gpg_recipient ]]; then
@@ -832,15 +835,15 @@ fi
 get_cipher
 get_password
 
-if [[ $rekey ]] && [[ $interactive ]]; then
+if [[ $rekey == "true" ]] && [[ $interactive == "true" ]]; then
 	confirm_rekey
-elif [[ $interactive ]]; then
+elif [[ $interactive == "true" ]]; then
 	confirm_configuration
 fi
 
 save_configuration
 
-if [[ $rekey ]]; then
+if [[ $rekey == "true" ]]; then
 	stage_rekeyed_files
 else
 	force_checkout
