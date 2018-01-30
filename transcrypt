@@ -110,7 +110,7 @@ die() {
 # verify that all requirements have been met
 run_safety_checks() {
 	# validate that we're in a git repository
-	[[ $GIT_DIR ]] || die "you are not currently in a git repository; did you forget to run "git init"?"
+	[[ $GIT_DIR ]] || die "you are not currently in a git repository; did you forget to run 'git init'?"
 
 	# exit if transcrypt is not in the required state
 	if [[ $requires_existing_config ]] && [[ ! $CONFIGURED ]]; then
@@ -121,7 +121,7 @@ run_safety_checks() {
 
 	# check for dependencies
 	for cmd in {column,grep,mktemp,openssl,sed,tee}; do
-		command -v $cmd > /dev/null || die "required command "%s" was not found" "$cmd"
+		command -v $cmd > /dev/null || die "required command '%s' was not found" "$cmd"
 	done
 
 	# ensure the repository is clean (if it has a HEAD revision) so we can force
@@ -139,12 +139,12 @@ validate_cipher() {
 	local supported=$(openssl list-cipher-commands | grep --line-regexp "$cipher")
 	if [[ ! $supported ]]; then
 		if [[ $interactive ]]; then
-			printf ""%s" is not a valid cipher; choose one of the following:\\n\\n" "$cipher"
+			printf "'%s' is not a valid cipher; choose one of the following:\\n\\n" "$cipher"
 			openssl list-cipher-commands | column -c 80
 			printf "\\n"
 			unset cipher
 		else
-			die 1 ""%s" is not a valid cipher; see 'openssl list-cipher-commands'" "$cipher"
+			die 1 "'%s' is not a valid cipher; see 'openssl list-cipher-commands'" "$cipher"
 		fi
 	fi
 }
@@ -247,7 +247,7 @@ stage_rekeyed_files() {
 	local encrypted_files=$(git ls-crypt)
 	if [[ $encrypted_files ]] && [[ $IS_BARE == "false" ]]; then
 		# touch all encrypted files to prevent stale stat info
-		cd "$REPO" || die 1 "could not change into the "%s" directory" "$REPO"
+		cd "$REPO" || die 1 "could not change into the '%s' directory" "$REPO"
 		touch $encrypted_files
 		git update-index --add -- $encrypted_files
 
@@ -328,13 +328,13 @@ save_configuration() {
 	if [[ -d $(git rev-parse --git-common-dir) ]]; then
 		# this allows us to support multiple working trees via git-worktree
 		# ...but the --git-common-dir flag was only added in November 2014
-		git config filter.crypt.clean ""$(git rev-parse --git-common-dir)"/crypt/clean %f"
-		git config filter.crypt.smudge ""$(git rev-parse --git-common-dir)"/crypt/smudge"
-		git config diff.crypt.textconv ""$(git rev-parse --git-common-dir)"/crypt/textconv"
+		git config filter.crypt.clean "$(git rev-parse --git-common-dir)/crypt/clean %f"
+		git config filter.crypt.smudge "$(git rev-parse --git-common-dir)/crypt/smudge"
+		git config diff.crypt.textconv "$(git rev-parse --git-common-dir)/crypt/textconv"
 	else
-		git config filter.crypt.clean ""$(git rev-parse --git-dir)"/crypt/clean %f"
-		git config filter.crypt.smudge ""$(git rev-parse --git-dir)"/crypt/smudge"
-		git config diff.crypt.textconv ""$(git rev-parse --git-dir)"/crypt/textconv"
+		git config filter.crypt.clean "$(git rev-parse --git-dir)/crypt/clean %f"
+		git config filter.crypt.smudge "$(git rev-parse --git-dir)/crypt/smudge"
+		git config diff.crypt.textconv "$(git rev-parse --git-dir)/crypt/textconv"
 	fi
 	git config filter.crypt.required "true"
 	git config diff.crypt.cachetextconv "true"
@@ -342,7 +342,7 @@ save_configuration() {
 	git config merge.renormalize "true"
 
 	# add a git alias for listing encrypted files
-	git config alias.ls-crypt "!git ls-files | git check-attr --stdin filter | awk "BEGIN { FS = \":\" }; /crypt$/{ print \$1 }""
+	git config alias.ls-crypt "!git ls-files | git check-attr --stdin filter | awk 'BEGIN { FS = \":\" }; /crypt$/{ print \$1 }'"
 }
 
 # display the current configuration settings
@@ -359,7 +359,7 @@ display_configuration() {
 	printf "  CIPHER:   %s\\n" "$current_cipher"
 	printf "  PASSWORD: %s\\n\\n" "$current_password"
 	printf "Copy and paste the following command to initialize a cloned repository:\\n\\n"
-	printf "  transcrypt -c %s -p "%s"\\n" "$current_cipher" "$escaped_password"
+	printf "  transcrypt -c %s -p '%s'\\n" "$current_cipher" "$escaped_password"
 }
 
 # remove transcrypt-related settings from the repository's git config
@@ -385,7 +385,7 @@ force_checkout() {
 		# this would normally delete uncommitted changes in the working directory,
 		# but we already made sure the repo was clean during the safety checks
 		local encrypted_files=$(git ls-crypt)
-		cd "$REPO" || die 1 "could not change into the "%s" directory" "$REPO"
+		cd "$REPO" || die 1 "could not change into the '%s' directory" "$REPO"
 		IFS=$"\\n"
 		for file in $encrypted_files; do
 			rm "$file"
@@ -452,7 +452,7 @@ uninstall_transcrypt() {
 		# touch all encrypted files to prevent stale stat info
 		local encrypted_files=$(git ls-crypt)
 		if [[ $encrypted_files ]] && [[ $IS_BARE == "false" ]]; then
-			cd "$REPO" || die 1 "could not change into the "%s" directory" "$REPO"
+			cd "$REPO" || die 1 "could not change into the '%s' directory" "$REPO"
 			touch $encrypted_files
 		fi
 
@@ -484,8 +484,8 @@ uninstall_transcrypt() {
 # list all of the currently encrypted files in the repository
 list_files() {
 	if [[ $IS_BARE == "false" ]]; then
-		cd "$REPO" || die 1 "could not change into the "%s" directory" "$REPO"
-		git ls-files | git check-attr --stdin filter | awk "BEGIN { FS = ":" }; /crypt$/{ print $1 }"
+		cd "$REPO" || die 1 "could not change into the '%s' directory" "$REPO"
+		git ls-files | git check-attr --stdin filter | awk "BEGIN { FS = ':' }; /crypt$/{ print $1 }"
 	fi
 }
 
@@ -497,12 +497,12 @@ show_raw_file() {
 		if git ls-files --others -- "$show_file" | awk "/${escaped_file}/{ exit 1 }"; then
 			file_paths=$(git ls-tree --name-only --full-name HEAD "$show_file")
 		else
-			die 1 "the file "%s" is not currently being tracked by git" "$show_file"
+			die 1 "the file '%s' is not currently being tracked by git" "$show_file"
 		fi
 	elif [[ $show_file == "*" ]]; then
 		file_paths=$(git ls-crypt)
 	else
-		die 1 "the file "%s" does not exist" "$show_file"
+		die 1 "the file '%s' does not exist" "$show_file"
 	fi
 
 	IFS=$"\\n"
@@ -517,11 +517,11 @@ show_raw_file() {
 # export password and cipher to a gpg encrypted file
 export_gpg() {
 	# check for dependencies
-	command -v gpg > /dev/null || die "required command "gpg" was not found"
+	command -v gpg > /dev/null || die "required command 'gpg' was not found"
 
 	# ensure the recipient key exists
 	if ! gpg --list-keys "$gpg_recipient" 2> /dev/null; then
-		die 1 "GPG recipient key "%s" does not exist" "$gpg_recipient"
+		die 1 "GPG recipient key '%s' does not exist" "$gpg_recipient"
 	fi
 
 	local current_cipher=$(git config --get --local transcrypt.cipher)
@@ -536,7 +536,7 @@ export_gpg() {
 # import password and cipher from a gpg encrypted file
 import_gpg() {
 	# check for dependencies
-	command -v gpg > /dev/null || die "required command "gpg" was not found"
+	command -v gpg > /dev/null || die "required command 'gpg' was not found"
 
 	local path
 	if [[ -f "${GIT_DIR}/crypt/${gpg_import_file}" ]]; then
@@ -544,7 +544,7 @@ import_gpg() {
 	elif [[ -f "${GIT_DIR}/crypt/${gpg_import_file}.asc" ]]; then
 		path="${GIT_DIR}/crypt/${gpg_import_file}.asc"
 	elif [[ ! -f $gpg_import_file ]]; then
-		die 1 "the file "%s" does not exist" "$gpg_import_file"
+		die 1 "the file '%s' does not exist" "$gpg_import_file"
 	else
 		path="$gpg_import_file"
 	fi
@@ -557,12 +557,12 @@ import_gpg() {
 
 		saftey_counter=$((saftey_counter + 1))
 		if [[ $saftey_counter -eq 3 ]]; then
-			die 1 "unable to decrypt the file "%s"" "$path"
+			die 1 "unable to decrypt the file '%s'" "$path"
 		fi
 	done
 
-	cipher=$(printf "%s" "$configuration" | grep "^cipher" | cut -d"=" -f 2-)
-	password=$(printf "%s" "$configuration" | grep "^password" | cut -d"=" -f 2-)
+	cipher=$(printf '%s' "$configuration" | grep "^cipher" | cut -d"=" -f 2-)
+	password=$(printf '%s' "$configuration" | grep "^password" | cut -d"=" -f 2-)
 }
 
 # print this script's usage message to stderr
