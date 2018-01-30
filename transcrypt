@@ -709,46 +709,53 @@ requires_existing_config="false"
 requires_clean_repo="true"
 
 # parse command line options
-while [[ "$1" != "" ]]
-do
+while [[ $# -gt 0 ]]; do
 	case $1 in
 		-c | --cipher)
 			cipher=$2
-			shift
+			shift 2
 			;;
 		--cipher=*)
 			cipher=${1#*=}
+            shift
 			;;
 		-p | --password)
 			password=$2
-			shift
+			shift 2
 			;;
 		--password=*)
 			password=${1#*=}
+            shift
 			;;
 		-y | --yes)
 			interactive="false"
+            shift
 			;;
 		-d | --display)
 			display_config="true"
 			requires_existing_config="true"
 			requires_clean_repo="false"
+            shift
 			;;
 		-r | --rekey)
 			rekey="true"
 			requires_existing_config="true"
+            shift
 			;;
 		-f | --flush-credentials)
 			flush_creds="true"
 			requires_existing_config="true"
+            shift
 			;;
 		-F | --force)
 			requires_clean_repo="false"
+            shift
 			;;
 		-u | --uninstall)
 			uninstall="true"
 			requires_existing_config="true"
 			requires_clean_repo="false"
+            shift
 			;;
 		-l | --list)
 			list_files
@@ -768,19 +775,21 @@ do
 			gpg_recipient=$2
 			requires_existing_config="true"
 			requires_clean_repo="false"
-			shift
+			shift 2
 			;;
 		--export-gpg=*)
 			gpg_recipient=${1#*=}
 			requires_existing_config="true"
 			requires_clean_repo="false"
+            shift
 			;;
 		-i | --import-gpg)
 			gpg_import_file=$2
-			shift
+			shift 2
 			;;
 		--import-gpg=*)
 			gpg_import_file=${1#*=}
+            shift
 			;;
 		-v | --version)
 			printf "transcrypt %s\\n" "$VERSION"
@@ -790,18 +799,12 @@ do
 			help
 			exit 0
 			;;
-		--*)
-			warn "unknown option -- %s" "${1#--}"
-			usage
-			exit 1
-			;;
 		*)
-			warn "unknown option -- %s" "${1#-}"
+			warn "unknown option -- %s" "$1"
 			usage
 			exit 1
 			;;
 	esac
-	shift
 done
 
 # always run our safety checks
