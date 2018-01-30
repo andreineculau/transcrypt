@@ -144,7 +144,7 @@ validate_cipher() {
 			printf "\\n"
 			unset cipher
 		else
-			die 1 ""%s" is not a valid cipher; see `openssl list-cipher-commands`" "$cipher"
+			die 1 ""%s" is not a valid cipher; see 'openssl list-cipher-commands'" "$cipher"
 		fi
 	fi
 }
@@ -260,7 +260,7 @@ stage_rekeyed_files() {
 save_helper_scripts() {
 	[[ ! -d "${GIT_DIR}/crypt" ]] && mkdir "${GIT_DIR}/crypt"
 
-	# The `decryption -> encryption` process on an unchanged file must be
+	# The 'decryption -> encryption' process on an unchanged file must be
 	# deterministic for everything to work transparently. To do that, the same
 	# salt must be used each time we encrypt the same file. An HMAC has been
 	# proven to be a PRF, so we generate an HMAC-SHA256 for each decrypted file
@@ -456,7 +456,7 @@ uninstall_transcrypt() {
 			touch $encrypted_files
 		fi
 
-		# remove the `git ls-crypt` alias
+		# remove the 'git ls-crypt' alias
 		git config --unset alias.ls-crypt
 
 		# remove the alias section if it's now empty
