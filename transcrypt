@@ -525,14 +525,9 @@ action_uninstall() {
 		fi
 
 		# remove any defined crypt patterns in gitattributes
-		case $OSTYPE in
-			darwin*)
-				sed -i "" "/filter=crypt diff=crypt[ \t]*$/d" "$GIT_ATTRIBUTES"
-				;;
-			linux*)
-				sed -i "/filter=crypt diff=crypt[ \t]*$/d" "$GIT_ATTRIBUTES"
-				;;
-		esac
+		readonly tempfile=$(mktemp 2> /dev/null || mktemp -t tmp)
+		sed "/filter=crypt diff=crypt[ \t]*$/d" "$GIT_ATTRIBUTES" > "$tempfile"
+        mv "$tempfile" "$GIT_ATTRIBUTES"
 
 		printf "The transcrypt configuration has been completely removed from the repository.\\n"
 	else
